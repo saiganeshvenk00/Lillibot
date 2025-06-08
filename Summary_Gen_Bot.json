@@ -1,0 +1,283 @@
+{
+  "name": "Summary Gen Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": "={{ [\"message\"] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -140,
+        60
+      ],
+      "id": "0004e478-1a35-4437-8f59-5c3766bc0882",
+      "name": "Telegram Trigger",
+      "webhookId": "1bb73f4c-0e62-4632-9c99-33cd265b43f3",
+      "credentials": {
+        "telegramApi": {
+          "id": "v549kJCnUMN887aX",
+          "name": "Summary Gen "
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI-powered research assistant integrated into a Telegram chatbot. Your purpose is to summarize online articles and help answer follow-ups for the user. Your inputs will be in the form of markdown ({{ $json.data[0].markdown }}) or a follow up message from the user ({{ $json[\"Follow up\"] }}). Answer {{ $json[\"Follow up\"] }} using memory saved.\n",
+        "options": {
+          "systemMessage": "=You are an AI-powered research assistant integrated into a Telegram chatbot. Your purpose is to summarize online articles and answer follow-up questions clearly and accurately. Your inputs will be in the form of markdown or in the form of a message sent by the user. You have a simple memory buffer attached for your use. Here are the two cases you will deal with.\n\nCase 1 (input is markdown: {{ $json.data[0].markdown }}):\nYou are given an article in markdown and you will do the following:\n-When handling a new markdown input, call the memory tool to clear all previous memory.\n-This indicates the start of a new article session.\n-Extract the article title and body from the markdown.\n-Summarize the article clearly and neutrally.\n-After generating the article summary, store it in memory under the key \"summary\".\n\nCase 2 (input is user follow-up: {{ $json['Follow up'] }}):\n-You are given a regular message (i.e., not a scraped article in markdown). Do the following:\n-Retrieve the value stored under the key \"summary\" using the memory tool.\n-If found, use the stored summary to guide your response and answer the user's question clearly and factually.\n-If the message goes beyond the article's scope, use the LLM to generate a response and clearly indicate it is not sourced from the article.\n\nKeep answers simple, within 200 words and preferably in bullet format. For all such messages, respond using a mix of memory + LLM. No need to use any summary formatting.\n\nStyle & Constraints:\nStay neutral and fact-based.\n\nNever include metadata like dates, author names, categories, social links, or navigation prompts.\n\nUse memory + LLM for all follow-up questions.\n\nUse a clean, conversational tone unless summarizing scraped article content."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        500,
+        80
+      ],
+      "id": "20f63b5e-e472-4582-8efe-57c8c9e91c04",
+      "name": "Summarizing Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        580,
+        260
+      ],
+      "id": "109e8f4c-189c-4a03-80ed-758b5f6f8e8e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{{ $json.message.text }}\",\n  \"limit\": 5,\n  \"scrapeOptions\": {\n    \"formats\":[\"markdown\"]\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        -100
+      ],
+      "id": "de1e9cad-d8de-47c6-99e5-26902a76d5d1",
+      "name": "Firecrawl Scraping",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4SLpMeZhtsgBMWIZ",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        260
+      ],
+      "id": "9d9acb85-d97e-4056-99d5-bb80b69948e7",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "oi1nrM5F9gqYgDP5",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        80
+      ],
+      "id": "242d0ae2-6d67-40a7-9246-1c011373cb12",
+      "name": "Output to user",
+      "webhookId": "371c7d55-dfff-4151-a4b8-6e983709d228",
+      "credentials": {
+        "telegramApi": {
+          "id": "v549kJCnUMN887aX",
+          "name": "Summary Gen "
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cc92f181-5c51-4cb9-9a3a-24a5807f289c",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "https://",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        40,
+        60
+      ],
+      "id": "a785df09-3e7d-4303-8129-1f81b6c645fa",
+      "name": "If | URL or Follow-up"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9891a399-9025-44fd-a8af-719e8a79d57c",
+              "name": "Follow up",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        280,
+        80
+      ],
+      "id": "bc00b855-fb9b-4e63-90f6-7e59a1aba30a",
+      "name": "Follow-up message"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If | URL or Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarizing Agent": {
+      "main": [
+        [
+          {
+            "node": "Output to user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Summarizing Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firecrawl Scraping": {
+      "main": [
+        [
+          {
+            "node": "Summarizing Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizing Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If | URL or Follow-up": {
+      "main": [
+        [
+          {
+            "node": "Firecrawl Scraping",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow-up message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow-up message": {
+      "main": [
+        [
+          {
+            "node": "Summarizing Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dbb9c881-0ac4-4ea1-879c-4f18492a768b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b1c9061e7e5a9871373211392725e0fcc7c0ef3f0ba8572de6b7837272613d28"
+  },
+  "id": "uf4Q0SIktvl2VL1w",
+  "tags": []
+}
