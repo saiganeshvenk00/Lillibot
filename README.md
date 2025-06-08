@@ -15,7 +15,7 @@ You can either **import the full workflow** using the provided JSON file, or **b
 
 ## Option 1: Import the Prebuilt Workflow
 
-1. Download `telegram-summarizer-workflow.json` from this repository.
+1. Download [`telegram-summarizer-workflow.json`](https://github.com/saiganeshvenk00/Lillibot/blob/main/Summary_Gen_Bot.json) from this repository.
 2. Open your [n8n editor](https://n8n.io) (cloud or self-hosted).
 3. Click “Import” in the top menu, then select “From File.”
 4. Upload the JSON file and click “Import.”
@@ -24,7 +24,7 @@ You can either **import the full workflow** using the provided JSON file, or **b
    - [How to get your OpenAI API key](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key)
    - [Firecrawl API setup guide (cURL example)](https://docs.firecrawl.dev/reference/quickstart)
 
-**Video Placeholder:** _[How to import workflows into n8n](#)_
+**Video Placeholder:** [How to import workflows into n8n](https://www.youtube.com/watch?v=MD4_RgcyCNk)
 
 ---
 
@@ -35,8 +35,6 @@ You can either **import the full workflow** using the provided JSON file, or **b
 - **Node:** Telegram Trigger  
 - **Purpose:** Listens for new messages from a Telegram bot.  
 - **Trigger On:** `["message"]`
-
-**Setup Guide:** [Telegram Trigger Docs](https://docs.n8n.io/integrations/builtin/trigger-nodes/n8n-nodes-base.telegram-trigger/)
 
 ---
 
